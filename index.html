@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FMT Command Cockpit</title>
+  <meta name="description" content="Walter FMT Plant Manager Command Cockpit - agenda, checkpoints, ações, relatórios e cultura Lázaro." />
+  <meta name="theme-color" content="#143e63" />
+  <meta name="apple-mobile-web-app-title" content="FMT Cockpit" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="safe-top"></div>
+    <div class="header-row">
+      <div>
+        <p class="eyebrow">Walter FMT</p>
+        <h1>Plant Manager Command Cockpit</h1>
+        <p class="motto" id="appMotto">Número → Desvio → Ação → Dono → Prazo → Fecho</p>
+      </div>
+      <button class="icon-btn" id="installHelpBtn" aria-label="Ajuda de instalação">iOS</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Navegação principal">
+    <button class="tab active" data-tab="today">Hoje</button>
+    <button class="tab" data-tab="agenda">Agenda</button>
+    <button class="tab" data-tab="checkpoint">Checkpoint</button>
+    <button class="tab" data-tab="actions">Ações</button>
+    <button class="tab" data-tab="radar">Radar</button>
+    <button class="tab" data-tab="reports">Reports</button>
+    <button class="tab" data-tab="config">Config</button>
+  </nav>
+
+  <main class="app-main">
+    <section class="tab-panel active" id="tab-today">
+      <div class="grid two">
+        <article class="card hero-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Command Board</p>
+              <h2 id="todayTitle">Hoje</h2>
+            </div>
+            <span class="status-pill" id="todayStatusPill">Comando</span>
+          </div>
+          <p id="todaySummary" class="muted"></p>
+          <div class="stats" id="todayStats"></div>
+          <div class="button-row">
+            <button class="primary" id="startRecommendedBtn">Iniciar próximo checkpoint</button>
+            <button class="secondary" data-open-tab="actions">Ver ações</button>
+          </div>
+        </article>
+        <article class="card rule-card">
+          <p class="eyebrow">Regra Lázaro</p>
+          <h2>KPI vermelho sem plano não entra na sala.</h2>
+          <p>A app bloqueia fecho de checkpoint quando falta número, ação, dono, prazo ou indicador de fecho.</p>
+        </article>
+      </div>
+      <article class="card">
+        <div class="section-head">
+          <h2>Checkpoints de hoje</h2>
+          <button class="ghost" data-open-tab="agenda">Ver semana</button>
+        </div>
+        <div class="timeline" id="todayTimeline"></div>
+      </article>
+      <article class="card">
+        <div class="section-head">
+          <h2>Ações críticas</h2>
+          <button class="ghost" data-open-tab="actions">Gerir</button>
+        </div>
+        <div id="criticalActions"></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-agenda">
+      <article class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Agenda semanal</p>
+            <h2>Governance + operação + cultura</h2>
+          </div>
+          <button class="secondary" id="printAgendaBtn">Imprimir</button>
+        </div>
+        <p class="muted">Clica em qualquer bloco para abrir o checkpoint. A agenda pode adaptar-se à operação, mas não pode desaparecer.</p>
+        <div class="week-grid" id="weekGrid"></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-checkpoint">
+      <div id="checkpointEmpty" class="card empty-state">
+        <p class="eyebrow">Checkpoint</p>
+        <h2>Escolhe um checkpoint para comandar.</h2>
+        <p>O cockpit vai guiar-te por tópicos, números, desvios, ações, donos, prazos e fecho obrigatório.</p>
+        <select id="checkpointSelect"></select>
+        <button class="primary" id="startSelectedCheckpointBtn">Iniciar checkpoint</button>
+      </div>
+
+      <div id="checkpointWorkspace" class="hidden">
+        <article class="card sticky-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow" id="activeCheckpointMeta">Checkpoint ativo</p>
+              <h2 id="activeCheckpointTitle"></h2>
+              <p class="muted" id="activeCheckpointObjective"></p>
+            </div>
+            <button class="danger-outline" id="discardDraftBtn">Descartar</button>
+          </div>
+          <div class="progress-rail">
+            <span>Preparar</span><span>Reunir</span><span>Decidir</span><span>Cobrar</span><span>Fechar</span>
+          </div>
+          <div id="validationBox" class="validation-box hidden"></div>
+        </article>
+
+        <article class="card">
+          <h3>1. Contexto e estado</h3>
+          <div class="form-grid">
+            <label>Estado geral
+              <select id="sessionStatus">
+                <option value="Verde">Verde</option>
+                <option value="Amarelo">Amarelo</option>
+                <option value="Vermelho">Vermelho</option>
+              </select>
+            </label>
+            <label>Participantes
+              <input id="sessionParticipants" placeholder="Quem esteve presente?" />
+            </label>
+            <label>Data
+              <input id="sessionDate" type="date" />
+            </label>
+            <label>Hora
+              <input id="sessionTime" type="time" />
+            </label>
+          </div>
+          <label>Contexto objetivo
+            <textarea id="sessionContext" placeholder="O que está a acontecer? Só factos, números e impacto."></textarea>
+          </label>
+        </article>
+
+        <article class="card">
+          <div class="section-head">
+            <h3>2. Tópicos a abordar</h3>
+            <button class="ghost" id="addTopicBtn">+ tópico</button>
+          </div>
+          <div id="topicsList" class="stack"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-head">
+            <h3>3. KPIs e desvios</h3>
+            <button class="ghost" id="addKpiBtn">+ KPI</button>
+          </div>
+          <p class="muted">Regra: KPI vermelho exige ação, dono e prazo.</p>
+          <div id="kpiList" class="stack"></div>
+        </article>
+
+        <article class="card">
+          <h3>4. Playbook de comando</h3>
+          <p class="muted">Cada resposta deve transformar discussão em facto, impacto, proposta, dono e prazo.</p>
+          <div id="questionsList" class="stack"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-head">
+            <h3>5. Ações criadas no checkpoint</h3>
+            <button class="ghost" id="addManualActionBtn">+ ação</button>
+          </div>
+          <div id="sessionActionsList" class="stack"></div>
+        </article>
+
+        <article class="card">
+          <h3>6. Radar cultural</h3>
+          <p class="muted">Regista sinais positivos e riscos culturais. O que toleras vira norma.</p>
+          <div id="cultureList" class="culture-grid"></div>
+        </article>
+
+        <article class="card close-card">
+          <h3>7. Fecho obrigatório</h3>
+          <p class="muted">A app só fecha quando existir decisão, dono, prazo, indicador de fecho e próxima revisão.</p>
+          <div class="form-grid">
+            <label>Decisão tomada
+              <textarea id="closeDecision" placeholder="Conforme alinhado, a decisão é..."></textarea>
+            </label>
+            <label>Dono nominal
+              <input id="closeOwner" placeholder="Nome do dono" />
+            </label>
+            <label>Prazo
+              <input id="closeDue" type="date" />
+            </label>
+            <label>Indicador de fecho
+              <input id="closeMetric" placeholder="KPI/evidência de fecho" />
+            </label>
+            <label>Próxima revisão
+              <input id="closeNextReview" type="date" />
+            </label>
+            <label>Comunicação necessária
+              <select id="closeAudience">
+                <option value="Equipa local">Equipa local</option>
+                <option value="VP">VP</option>
+                <option value="Dono Engenharia">Dono Engenharia</option>
+                <option value="Dono Operações">Dono Operações</option>
+                <option value="Cliente / stakeholder">Cliente / stakeholder</option>
+                <option value="Nenhuma">Nenhuma</option>
+              </select>
+            </label>
+          </div>
+          <label>Frase de liderança
+            <input id="leadershipPhrase" placeholder="Ex.: Hoje transformamos ruído em decisão." />
+          </label>
+          <div class="button-row">
+            <button class="secondary" id="saveDraftBtn">Guardar rascunho</button>
+            <button class="primary" id="validateCheckpointBtn">Validar fecho</button>
+            <button class="success" id="closeCheckpointBtn">Fechar e gerar ata</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-actions">
+      <article class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Cobrador</p>
+            <h2>Ações, donos e prazos</h2>
+          </div>
+          <button class="primary" id="newGlobalActionBtn">+ ação</button>
+        </div>
+        <div class="filter-row">
+          <button class="filter active" data-action-filter="open">Abertas</button>
+          <button class="filter" data-action-filter="overdue">Atrasadas</button>
+          <button class="filter" data-action-filter="critical">Críticas</button>
+          <button class="filter" data-action-filter="closed">Fechadas</button>
+          <button class="filter" data-action-filter="all">Todas</button>
+        </div>
+        <div id="actionsBoard" class="stack"></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-radar">
+      <article class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Guardião cultural</p>
+            <h2>Radar cultural Walter FMT</h2>
+          </div>
+          <button class="secondary" id="generateCultureReportBtn">Gerar síntese</button>
+        </div>
+        <div id="radarStats" class="radar-grid"></div>
+        <div id="cultureReport" class="output-box hidden"></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-reports">
+      <article class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Reports</p>
+            <h2>Atas e relatórios automáticos</h2>
+          </div>
+          <button class="secondary" id="exportAllBtn">Exportar dados</button>
+        </div>
+        <div class="report-layout">
+          <div id="reportsList" class="reports-list"></div>
+          <div class="report-viewer">
+            <div class="button-row">
+              <button class="ghost" id="copyReportBtn">Copiar</button>
+              <button class="ghost" id="shareReportBtn">Partilhar</button>
+              <button class="ghost" id="downloadReportBtn">Download .md</button>
+            </div>
+            <pre id="reportOutput">Seleciona uma ata/report.</pre>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-config">
+      <article class="card">
+        <p class="eyebrow">Configuração</p>
+        <h2>Atualizar tópicos, pessoas e dados</h2>
+        <p class="muted">Os tópicos fixos estão em <code>data/bible-config.js</code>. Aqui podes adicionar tópicos recorrentes sem mexer no código.</p>
+        <div class="form-grid">
+          <label>Checkpoint
+            <select id="configCheckpointSelect"></select>
+          </label>
+          <label>Novo tópico recorrente
+            <input id="configTopicInput" placeholder="Ex.: Cliente estratégico em risco" />
+          </label>
+        </div>
+        <div class="button-row">
+          <button class="primary" id="saveCustomTopicBtn">Adicionar tópico</button>
+          <button class="secondary" id="importDataBtn">Importar JSON</button>
+          <button class="danger-outline" id="clearDataBtn">Limpar dados locais</button>
+        </div>
+        <textarea id="importDataArea" class="hidden" placeholder="Cola aqui JSON exportado anteriormente"></textarea>
+        <div id="customTopicsList" class="stack"></div>
+      </article>
+      <article class="card">
+        <h3>Instalação no iPhone</h3>
+        <ol class="number-list">
+          <li>Publica estes ficheiros no GitHub Pages.</li>
+          <li>Abre o link no Safari do iPhone.</li>
+          <li>Toca em Partilhar → Adicionar ao ecrã principal.</li>
+          <li>Abre pelo ícone. A app funciona como cockpit e guarda dados no dispositivo.</li>
+        </ol>
+      </article>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <dialog id="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle"></h3>
+      <div id="modalBody"></div>
+      <div class="button-row right">
+        <button class="secondary" id="modalCancelBtn">Cancelar</button>
+        <button class="primary" id="modalOkBtn">OK</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="data/bible-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
